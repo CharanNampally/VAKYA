@@ -1,6 +1,6 @@
 export type SourceLanguage = 'en' | 'hi' | 'te' | 'sa';
 export type Mode = 'teach' | 'converse' | 'analyze';
-export type ErrorCode = 'unreachable' | 'unauthorized' | 'forbidden_origin' | 'provider_unavailable' | 'busy' | 'invalid_request' | 'invalid_output' | 'inference_failed';
+export type ErrorCode = 'unreachable' | 'unauthorized' | 'forbidden_origin' | 'provider_unavailable' | 'busy' | 'quota_exceeded' | 'invalid_request' | 'invalid_output' | 'inference_failed';
 export type Capabilities = {
   protocol: 1;
   translation: { 'en-indic': boolean; 'indic-en': boolean; 'indic-indic': boolean };
@@ -22,8 +22,12 @@ export type LocalResult = {
 export class CompanionError extends Error {
   constructor(public readonly code: ErrorCode) { super(code); }
 }
-const endpoint = 'http://127.0.0.1:8765/v1';
-const errors: ErrorCode[] = ['unauthorized', 'forbidden_origin', 'provider_unavailable', 'busy', 'invalid_request', 'invalid_output', 'inference_failed'];
+const hostedOrigin = process.env.EXPO_PUBLIC_TUTOR_API_URL?.replace(/\/+$/, '') ?? '';
+const localRequested = typeof window !== 'undefined' && window.location
+  ? new URLSearchParams(window.location.search).get('service') === 'local' : false;
+export const usingHostedTutor = !!hostedOrigin && !localRequested;
+const endpoint = usingHostedTutor ? `${hostedOrigin}/v1` : 'http://127.0.0.1:8765/v1';
+const errors: ErrorCode[] = ['unauthorized', 'forbidden_origin', 'provider_unavailable', 'busy', 'quota_exceeded', 'invalid_request', 'invalid_output', 'inference_failed'];
 const sources: SourceLanguage[] = ['en', 'hi', 'te', 'sa'];
 const warnings = ['machine_translation', 'transliteration_only', 'candidate_analysis', 'experimental_conversation'];
 const record = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
@@ -57,7 +61,7 @@ async function request<T>(path: string, token: string, signal: AbortSignal, vali
   try {
     response = await fetch(`${endpoint}/${path}`, {
       method: body === undefined ? 'GET' : 'POST',
-      headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      headers: { ...(usingHostedTutor ? {} : { Authorization: `Bearer ${token}` }), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal,
     });

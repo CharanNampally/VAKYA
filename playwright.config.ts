@@ -7,7 +7,7 @@ export default defineConfig({
   retries: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://127.0.0.1:19006',
+    baseURL: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:19006',
     trace: 'on-first-retry',
   },
   projects: [
@@ -26,7 +26,7 @@ export default defineConfig({
     },
     { name: 'mobile-chromium', use: { ...devices['Pixel 7'] } },
   ],
-  webServer: {
+  webServer: process.env.E2E_BASE_URL ? undefined : {
     command: 'npm run web',
     url: 'http://127.0.0.1:19006',
     timeout: 120_000,

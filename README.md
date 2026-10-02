@@ -10,27 +10,48 @@ Vākya is a stateless, voice-first Sanskrit tutor for web, iOS, and Android. San
 - [Brainstorm technical assessment](docs/Brainstorm.md): proposal corrections, confirmed product decisions, and implementation stages.
 - [Local companion architecture](docs/LOCAL-COMPANION-ARCHITECTURE.md): runtime boundaries, model matrix, contracts, privacy, and validation gates.
 
-## Local model companion (in development)
+## Hosted tutor and optional local companion
 
-Open `http://localhost:19006/?mode=tutor&lang=en` for the new local Teach/Conversation/Word-analysis surface. It requires an explicitly paired Python companion on the same computer; missing neural providers are shown as unavailable rather than silently falling back to a cloud API. See [companion setup](companion/README.md). The existing OpenAI lessons and browser-only Sanskrit transcription remain independent.
+Open `/?mode=tutor&lang=en` for Teach, Conversation, and Word Analysis.
+When `EXPO_PUBLIC_TUTOR_API_URL` is configured at build time, the app connects
+automatically to that HTTPS service without a pairing token or local Python
+installation. The same origin also serves lesson conversations. Without that
+configuration, the original paired companion is used; `?service=local` explicitly
+selects it in a hosted build. See [companion setup](companion/README.md).
 
-The Local Tutor UI is included in the Pages build, but its current API transport is still loopback-only. Publishing that UI does not deploy the Python companion or activate its models. Model activation evidence is tracked in the architecture document; fixture tests do not imply installed neural models.
+Publishing the UI does not provision models. The capability response controls
+available operations, and provider errors never trigger an undisclosed fallback.
+Model activation and real inference must be verified separately from fixture tests.
 
-### Hosted service direction
+### Hosted service configuration
 
-For the hosted product, learners should not install Python, download server models, or enter a local pairing token. The target is the Pages client calling a deployed HTTPS model service. The local companion remains a development/offline option, not the required public onboarding flow.
+The [hosted tutor](azure/tutor/README.md) provides translation, conversation, and
+morphological candidates. Translation providers are explicitly selectable:
+ungated MADLAD-400-3B-MT or normally provisioned IndicTrans2. Qwen3-4B plans English
+conversation replies; it is not the translator. Generated Sanskrit remains
+experimental and is not verified instruction.
 
-The [Azure container source](azure/tts/README.md) currently implements **Sanskrit chant TTS only** (`POST /v1/speak`), not the companion's translation/conversation/analysis API. On 2 October 2026, the inspected `rg-snampallyai` resource group contained a container registry and Container Apps environment but no deployed Container App endpoint. A service deployment and its authentication/CORS contract must be verified before switching the public tutor away from loopback.
+The separate [Vāgdhenu service](azure/tts/README.md) provides `/v1/speak` chant
+audio. Vāgbodhinī is the upstream tutor application built on this speech engine,
+not another model. The deployed service produced a verified 24 kHz mono WAV from
+real Sanskrit synthesis on 2 October 2026.
 
-The Pages workflow reads the optional GitHub repository variables `EXPO_PUBLIC_TTS_API_URL` (speech service origin) and `EXPO_PUBLIC_API_URL` (existing OpenAI tutor API origin). These are public URLs, **never secrets**. Setting either does not configure the local companion transport or create the corresponding backend.
+The Pages workflow accepts these public repository variables (never secrets):
 
-The web app now includes browser-local Su-shrota ONNX transcription. Native builds retain the existing server transcription path. OpenAI still powers tutor replies; device speech is not a verified Sanskrit pronunciation voice.
+- `EXPO_PUBLIC_TUTOR_API_URL`: hosted open-model tutor origin
+- `EXPO_PUBLIC_TTS_API_URL`: separate Sanskrit chant service origin
+- `EXPO_PUBLIC_API_URL`: legacy OpenAI API origin, used when hosted tutor mode is absent
+
+Submitted text goes to the configured service; browser Sanskrit recordings stay
+local. Quota counters are persisted, not conversations. Native builds retain
+their existing server transcription/device speech paths; these are not a
+verified equivalent of the browser Sanskrit speech pipeline.
 
 ## Features
 
 - Guided onboarding for support language, Sanskrit script, and level
 - Four seeded beginner lesson paths with Devanagari and IAST
-- OpenAI-powered conversational Sanskrit tutor
+- Hosted open-model tutor with selectable translation; legacy OpenAI API remains optional
 - Browser-local Sanskrit transcription with microphone, upload, and public-sample controls
 - Explicit 179 MiB model download, browser caching, cancellation, and editable transcripts
 - Web Sanskrit speech through a configured TTS API; native builds retain device speech
@@ -70,15 +91,20 @@ Use clips between 0.4 and 15 seconds, at most 10 MB. Microphone capture stops ju
 
 Transcription is also available under **Practice** and inside lessons. **Use in tutor reply** only copies the editable transcript into the reply field. **Send** is the separate action that shares text with the tutor.
 
-Su-shrota is an ASR (automatic speech recognition) model: it converts Sanskrit audio into text and does not generate spoken audio. The audio player below a result replays the recording or public sample that was given to the model. Lesson **Listen** buttons are a separate device text-to-speech feature; pronunciation and voice quality depend on the voices installed in the browser or operating system.
+Su-shrota is an ASR (automatic speech recognition) model: it converts Sanskrit audio into text and does not generate spoken audio. The audio player below a result replays the recording or public sample that was given to the model. On the web, lesson **Listen** buttons call the separate Vāgdhenu chant service. Native builds still use device text-to-speech, whose pronunciation and voice quality depend on installed operating-system voices.
 
 ### Tutor API and mobile
 
-Expo's local web server serves the app and recognition assets, **not** the functions in `api/`. For live tutor responses, deploy/configure that API with `OPENAI_API_KEY` on the server and set `EXPO_PUBLIC_API_URL` to its origin before starting the app. OpenAI credentials are not required for local ASR.
+Expo's local web server serves the app and recognition assets, **not** the model
+API. Set `EXPO_PUBLIC_TUTOR_API_URL` to the deployed open-model service for tutor
+responses. Alternatively, the legacy functions in `api/` require a server-side
+`OPENAI_API_KEY` and `EXPO_PUBLIC_API_URL`. OpenAI credentials are not needed for
+the hosted open-model tutor or browser-local ASR.
 
 For native builds, run `npm run ios` or `npm run android` with the deployed API origin configured. The browser-only ONNX worker is not used in native builds.
 
-The OpenAI key belongs only in the server deployment environment. Never expose it through an `EXPO_PUBLIC_` variable.
+The optional OpenAI key belongs only in the server deployment environment.
+Never expose it through an `EXPO_PUBLIC_` variable.
 
 ## Validation
 
@@ -111,7 +137,7 @@ To verify the actual deployment, including real local inference:
 PAGES_TEST_URL=https://charannampally.github.io/VAKYA/ npm run test:e2e -- tests/e2e/pages.spec.ts --project=desktop-chromium
 ```
 
-GitHub Pages is static hosting: onboarding, curriculum, localization, device speech, saved progress, and browser-local ASR work there. **It cannot execute `api/tutor.ts` or `api/transcribe.ts`.** AI replies and the native server-transcription path still need a separate backend. Before enabling that backend from Pages, configure its allowed-origin/CORS policy for the Pages origin and provide its public URL at build time. Never add an OpenAI API key to the workflow or any `EXPO_PUBLIC_` setting.
+GitHub Pages is static hosting: onboarding, curriculum, localization, saved progress, and browser-local ASR work there. Configured web speech is supplied by the separate Azure Vāgdhenu API. Pages **cannot execute `api/tutor.ts` or `api/transcribe.ts`**; AI replies and the native server-transcription path still need a separate backend. Before enabling that backend from Pages, configure its allowed-origin/CORS policy for the Pages origin and provide its public URL at build time. Never add an OpenAI API key to the workflow or any `EXPO_PUBLIC_` setting.
 
 The app's MIT license does not relicense third-party datasets, model weights, or runtime dependencies. Their attribution and release caveats below still apply.
 

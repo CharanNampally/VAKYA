@@ -34,4 +34,5 @@ export type TutorMessage = {
   transliteration?: string;
   support?: string;
   supportLanguage?: SupportLanguage;
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
 };

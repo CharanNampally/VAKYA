@@ -24,7 +24,8 @@ import LocalSpeechPanel from './src/speech/LocalSpeechPanel';
 import { speechCopy } from './src/speech/copy';
 import { speakSanskrit } from './src/speech/synthesis';
 import LocalTutorPanel from './src/localTutor/LocalTutorPanel';
-import { localCopy } from './src/localTutor/copy';
+import { tutorCopy as localCopy } from './src/localTutor/copy';
+import { SourceLanguage, usingHostedTutor } from './src/localTutor/api';
 import {
   Lesson,
   Level,
@@ -524,6 +525,22 @@ function LessonScreen({
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<keyof typeof import('./src/content').ui | null>(null);
   const [showReference, setShowReference] = useState(false);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>('sa');
+
+  async function playSpeech(id: string, text: string, rate = 0.8) {
+    if (speakingId) return;
+    setError(null);
+    setSpeakingId(id);
+    try {
+      await speakSanskrit(text, rate);
+    } catch (reason) {
+      console.error('Sanskrit speech failed', reason);
+      setError('speechError');
+    } finally {
+      setSpeakingId(null);
+    }
+  }
 
   async function submitMessage(text: string) {
     const trimmed = text.trim();
@@ -541,6 +558,7 @@ function LessonScreen({
         lessonId: lesson.id,
         message: trimmed,
         history: messages.slice(-6),
+        sourceLanguage,
       });
       const tutorMessage: TutorMessage = {
         id: `tutor-${Date.now()}`,
@@ -549,10 +567,7 @@ function LessonScreen({
         supportLanguage: language,
       };
       setMessages((current) => [...current, tutorMessage]);
-      void speakSanskrit(response.sanskrit, 0.82).catch((reason) => {
-        console.error('Sanskrit speech failed', reason);
-        setError('speechError');
-      });
+      void playSpeech(tutorMessage.id, response.sanskrit, 0.82);
     } catch (reason) {
       console.error('Tutor request failed', reason);
       setError(reason instanceof TutorApiUnavailableError ? 'tutorConfig' : 'tutorError');
@@ -613,13 +628,12 @@ function LessonScreen({
       {showReference ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.referenceStrip} contentContainerStyle={styles.referenceContent}>
           {lesson.phrases.map((phrase) => (
-            <Pressable key={phrase.devanagari} style={styles.referencePhrase} onPress={() => {
-              setError(null);
-              void speakSanskrit(phrase.devanagari, 0.78).catch((reason) => {
-                console.error('Sanskrit speech failed', reason);
-                setError('speechError');
-              });
-            }}>
+            <Pressable
+              key={phrase.devanagari}
+              disabled={speakingId !== null}
+              style={styles.referencePhrase}
+              onPress={() => void playSpeech(`reference-${phrase.devanagari}`, phrase.devanagari, 0.78)}
+            >
               <Text style={styles.referenceSanskrit}>{phrase.devanagari}</Text>
               <Text style={styles.referenceMeaning}>{phrase.meaning[language]}</Text>
             </Pressable>
@@ -652,14 +666,14 @@ function LessonScreen({
               ) : null}
               {message.role === 'tutor' && message.sanskrit ? (
                 <View style={styles.messageActions}>
-                  <Pressable accessibilityRole="button" onPress={() => {
-                    setError(null);
-                    void speakSanskrit(message.sanskrit!).catch((reason) => {
-                      console.error('Sanskrit speech failed', reason);
-                      setError('speechError');
-                    });
-                  }}>
-                    <Text style={styles.messageAction}>◖ {t('listen', language)}</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={speakingId !== null}
+                    onPress={() => void playSpeech(message.id, message.sanskrit!)}
+                  >
+                    {speakingId === message.id
+                      ? <ActivityIndicator color={colors.leaf} size="small" />
+                      : <Text style={styles.messageAction}>◖ {t('listen', language)}</Text>}
                   </Pressable>
                 </View>
               ) : null}
@@ -672,10 +686,16 @@ function LessonScreen({
             </View>
           ) : null}
           {error ? <Text accessibilityRole="alert" style={styles.errorText}>{t(error, language)}</Text> : null}
-          <LocalSpeechPanel language={language} onUseTranscript={setInput} />
+          <LocalSpeechPanel language={language} onUseTranscript={(value) => { setInput(value); setSourceLanguage('sa'); }} />
         </ScrollView>
 
         <View style={styles.composerWrap}>
+          {usingHostedTutor && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            <Text>{localCopy[language].source}</Text>
+            {(['sa', 'en', 'hi', 'te'] as SourceLanguage[]).map((source) => <Pressable key={source} accessibilityRole="radio" accessibilityState={{ checked: sourceLanguage === source }} disabled={isSending} onPress={() => setSourceLanguage(source)}>
+              <Text style={{ fontWeight: sourceLanguage === source ? '700' : '400' }}>{source === 'sa' ? 'संस्कृतम्' : languageNames[source]}</Text>
+            </Pressable>)}
+          </View>}
           <View style={styles.promptHint}>
             <Text style={styles.promptHintText}>{t('try', language)} {lesson.phrases[Math.min(messages.length - 1, lesson.phrases.length - 1)].devanagari}</Text>
           </View>
@@ -727,7 +747,7 @@ function BottomNav({ screen, language, onChange }: { screen: Screen; language: S
       {items.map((item) => (
         <Pressable key={item.id} testID={`nav-${item.id}`} style={styles.navItem} onPress={() => onChange(item.id)}>
           <Text style={[styles.navIcon, screen === item.id && styles.navActive]}>{item.icon}</Text>
-          <Text style={[styles.navLabel, screen === item.id && styles.navActive]}>{t(item.label, language)}</Text>
+          <Text style={[styles.navLabel, screen === item.id && styles.navActive]}>{item.id === 'local' && usingHostedTutor ? localCopy[language].title : t(item.label, language)}</Text>
           {screen === item.id ? <View style={styles.navDot} /> : null}
         </Pressable>
       ))}
