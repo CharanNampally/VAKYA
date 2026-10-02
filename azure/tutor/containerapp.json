@@ -1,0 +1,73 @@
+{
+  "location": "northcentralus",
+  "identity": {
+    "type": "UserAssigned",
+    "userAssignedIdentities": {
+      "/subscriptions/800921f1-1463-43ad-8b74-c8b5b22d00a3/resourceGroups/rg-snampallyai/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-vakya-tutor": {}
+    }
+  },
+  "properties": {
+    "managedEnvironmentId": "/subscriptions/800921f1-1463-43ad-8b74-c8b5b22d00a3/resourceGroups/rg-snampallyai/providers/Microsoft.App/managedEnvironments/cae-vakya-tts-ncus",
+    "workloadProfileName": "gpu-t4-consumption",
+    "configuration": {
+      "activeRevisionsMode": "Single",
+      "ingress": {
+        "external": true,
+        "targetPort": 8000,
+        "transport": "http",
+        "allowInsecure": false
+      },
+      "registries": [
+        {
+          "server": "crvakyattsnc.azurecr.io",
+          "identity": "/subscriptions/800921f1-1463-43ad-8b74-c8b5b22d00a3/resourceGroups/rg-snampallyai/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-vakya-tutor"
+        }
+      ]
+    },
+    "template": {
+      "containers": [
+        {
+          "name": "tutor",
+          "image": "crvakyattsnc.azurecr.io/vakya-tutor@sha256:881ef3a1d93b5e7889d72598ce7b9871de4d0dad9c769254d5de7d52482f6cb9",
+          "resources": { "cpu": 8.0, "memory": "56Gi" },
+          "env": [
+            { "name": "AZURE_CLIENT_ID", "value": "9d744cbd-520f-4943-9098-46c409905564" },
+            { "name": "AZURE_STORAGE_TABLE_ENDPOINT", "value": "https://stsnampallya166177357273.table.core.windows.net/" },
+            { "name": "VAKYA_TRANSLATION_PROVIDER", "value": "madlad" },
+            { "name": "VAKYA_GLOBAL_DAILY_LIMIT", "value": "100" },
+            { "name": "VAKYA_CLIENT_DAILY_LIMIT", "value": "20" },
+            { "name": "VAKYA_TTS_API_URL", "value": "https://ca-vakya-tts.bravemushroom-b8d00672.northcentralus.azurecontainerapps.io" }
+          ],
+          "probes": [
+            {
+              "type": "Startup",
+              "tcpSocket": { "port": 8000 },
+              "periodSeconds": 10,
+              "timeoutSeconds": 5,
+              "failureThreshold": 60
+            },
+            {
+              "type": "Readiness",
+              "httpGet": { "path": "/health", "port": 8000 },
+              "periodSeconds": 10,
+              "timeoutSeconds": 5
+            },
+            {
+              "type": "Liveness",
+              "httpGet": { "path": "/health", "port": 8000 },
+              "periodSeconds": 30,
+              "timeoutSeconds": 5
+            }
+          ]
+        }
+      ],
+      "scale": {
+        "minReplicas": 0,
+        "maxReplicas": 1,
+        "rules": [
+          { "name": "http", "http": { "metadata": { "concurrentRequests": "1" } } }
+        ]
+      }
+    }
+  }
+}

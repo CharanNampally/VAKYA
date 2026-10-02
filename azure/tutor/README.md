@@ -87,3 +87,14 @@ npm test -- tests/unit/hosted-tutor.test.ts tests/unit/local-tutor.test.ts
 Fixture tests cover contracts and errors, not translation quality or actual GPU
 inference. Deployment is not accepted until real translation, conversation and
 audio playback have been exercised through the public client.
+
+Run the opt-in public-browser test against a deployed hosted build:
+
+```sh
+HOSTED_LIVE_URL=https://charannampally.github.io/VAKYA/ \
+  npm run test:e2e -- tests/e2e/hosted-live.spec.ts --project desktop-chromium
+```
+
+It consumes real quota, checks the returned Sanskrit/Telugu scripts and WAV
+header, and observes actual browser audio time advancing (without stubbing
+playback). These are integration checks, not expert linguistic evaluation.

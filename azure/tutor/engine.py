@@ -74,6 +74,8 @@ class HostedEngine(Engine):
     def semantic_reply(self, text, level, history):
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
+        from lmformatenforcer import JsonSchemaParser
+        from lmformatenforcer.integrations.transformers import build_transformers_prefix_allowed_tokens_fn
 
         if not has_weights(self.path) or not torch.cuda.is_available():
             raise ProviderError("provider_unavailable", "GPU conversation is not available.")
@@ -105,11 +107,15 @@ class HostedEngine(Engine):
             inputs = self.tokenizer(formatted, return_tensors="pt").to("cuda")
             if inputs.input_ids.shape[1] > 2048:
                 raise ProviderError("invalid_request", "Clear the conversation and use a shorter sentence.")
+            allowed_tokens = build_transformers_prefix_allowed_tokens_fn(
+                self.tokenizer, JsonSchemaParser(SemanticReply.model_json_schema()),
+            )
             with torch.inference_mode():
                 output = self.model.generate(
                     **inputs, max_new_tokens=256, max_time=60, do_sample=True,
                     temperature=0.7, top_p=0.8, top_k=20, repetition_penalty=1.1,
                     pad_token_id=self.tokenizer.eos_token_id,
+                    prefix_allowed_tokens_fn=allowed_tokens,
                 )
             tokens = output[0, inputs.input_ids.shape[1]:]
             if self.tokenizer.eos_token_id not in tokens.tolist():

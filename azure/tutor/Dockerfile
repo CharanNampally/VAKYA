@@ -12,6 +12,6 @@ RUN HF_HUB_OFFLINE=0 python -c "from huggingface_hub import snapshot_download; s
 COPY companion/vakya_companion /app/companion/vakya_companion
 COPY azure/tutor/engine.py azure/tutor/quota.py azure/tutor/app.py /app/
 WORKDIR /app
-RUN python -c "from engine import HostedEngine; assert HostedEngine().capabilities()['conversation']"
+RUN python -c "from engine import HostedEngine; from transformers import T5Tokenizer, AutoTokenizer; T5Tokenizer.from_pretrained('/opt/models/madlad', local_files_only=True); AutoTokenizer.from_pretrained('/opt/models/qwen', local_files_only=True); assert HostedEngine().capabilities()['conversation']"
 EXPOSE 8000
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--no-access-log"]

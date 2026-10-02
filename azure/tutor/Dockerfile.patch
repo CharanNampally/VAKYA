@@ -1,0 +1,5 @@
+FROM crvakyattsnc.azurecr.io/vakya-tutor@sha256:881ef3a1d93b5e7889d72598ce7b9871de4d0dad9c769254d5de7d52482f6cb9
+COPY azure/tutor/requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+COPY azure/tutor/engine.py azure/tutor/quota.py azure/tutor/app.py /app/
+RUN python -c "from engine import HostedEngine; from transformers import T5Tokenizer, AutoTokenizer; T5Tokenizer.from_pretrained('/opt/models/madlad', local_files_only=True); AutoTokenizer.from_pretrained('/opt/models/qwen', local_files_only=True); assert HostedEngine().capabilities()['conversation']"

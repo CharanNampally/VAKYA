@@ -4,6 +4,7 @@
 !azure/tutor/*.py
 !azure/tutor/requirements.txt
 !azure/tutor/Dockerfile
+!azure/tutor/Dockerfile.patch
 !companion/
 !companion/vakya_companion/
 !companion/vakya_companion/*.py
