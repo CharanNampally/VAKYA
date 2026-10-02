@@ -1,0 +1,21 @@
+Su-shrota public evaluation audio sample
+
+Author: Prathosh A P, Indian Institute of Science, Bengaluru
+Source: https://huggingface.co/datasets/prathoshap/sushrota-sanskrit-asr-data
+Revision: 9ea73b50734901a5fabbb98233e062a05d1b71f0
+Split: in_the_wild_test
+Row index: 1 (zero-based)
+Reference transcript: परस्परानुकथनं
+Duration: 3.84 seconds
+License: Creative Commons Attribution 4.0 International (CC-BY-4.0)
+License URL: https://creativecommons.org/licenses/by/4.0/
+
+Downloaded from the dataset viewer's WAV representation. No further audio
+modifications were made. SHA-256:
+455d62226e8448494977a6950d8af745ef9faeb5b8680d7f1b030e6efffed969
+
+Citation: Prathosh A P, Su-shrota: Scholar-grade Sanskrit ASR and metre-aware
+chant practice, Indian Institute of Science, Bengaluru, 2026.
+
+This sample is included for local recognition testing, not as a pronunciation
+certification or an endorsement of Vākya.

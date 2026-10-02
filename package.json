@@ -1,0 +1,40 @@
+{
+  "name": "sanskrit-teacher",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "expo": "~55.0.31",
+    "expo-asset": "~55.0.20",
+    "expo-audio": "~55.0.18",
+    "expo-constants": "~55.0.17",
+    "expo-speech": "~55.0.18",
+    "expo-status-bar": "~55.0.6",
+    "onnxruntime-web": "1.21.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-native": "0.83.10",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@types/react": "~19.2.2",
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "scripts": {
+    "prepare:asr": "node scripts/prepare-asr.mjs",
+    "prestart": "npm run prepare:asr",
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "preweb": "npm run prepare:asr",
+    "web": "expo start --web --port 19006",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "preexport:web": "npm run prepare:asr",
+    "export:web": "expo export --platform web"
+  },
+  "private": true
+}
