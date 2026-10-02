@@ -7,6 +7,22 @@ Vākya is a stateless, voice-first Sanskrit tutor for web, iOS, and Android. San
 - [Su-shrota technical guide](docs/SUSHROTA-TECHNICAL-GUIDE.md): architecture, training, data, decoding, evaluation, and implementation caveats.
 - [Browser and mobile feasibility](docs/SUSHROTA-APP-FEASIBILITY.md): native browser speech versus local ONNX, measured browser smoke test, TTS options, and integration roadmap.
 - [Complete upstream repository map](docs/SUSHROTA-REPOSITORY-MAP.md): all 121 tracked files in the inspected snapshot.
+- [Brainstorm technical assessment](docs/Brainstorm.md): proposal corrections, confirmed product decisions, and implementation stages.
+- [Local companion architecture](docs/LOCAL-COMPANION-ARCHITECTURE.md): runtime boundaries, model matrix, contracts, privacy, and validation gates.
+
+## Local model companion (in development)
+
+Open `http://localhost:19006/?mode=tutor&lang=en` for the new local Teach/Conversation/Word-analysis surface. It requires an explicitly paired Python companion on the same computer; missing neural providers are shown as unavailable rather than silently falling back to a cloud API. See [companion setup](companion/README.md). The existing OpenAI lessons and browser-only Sanskrit transcription remain independent.
+
+The Local Tutor UI is included in the Pages build, but its current API transport is still loopback-only. Publishing that UI does not deploy the Python companion or activate its models. Model activation evidence is tracked in the architecture document; fixture tests do not imply installed neural models.
+
+### Hosted service direction
+
+For the hosted product, learners should not install Python, download server models, or enter a local pairing token. The target is the Pages client calling a deployed HTTPS model service. The local companion remains a development/offline option, not the required public onboarding flow.
+
+The [Azure container source](azure/tts/README.md) currently implements **Sanskrit chant TTS only** (`POST /v1/speak`), not the companion's translation/conversation/analysis API. On 2 October 2026, the inspected `rg-snampallyai` resource group contained a container registry and Container Apps environment but no deployed Container App endpoint. A service deployment and its authentication/CORS contract must be verified before switching the public tutor away from loopback.
+
+The Pages workflow reads the optional GitHub repository variables `EXPO_PUBLIC_TTS_API_URL` (speech service origin) and `EXPO_PUBLIC_API_URL` (existing OpenAI tutor API origin). These are public URLs, **never secrets**. Setting either does not configure the local companion transport or create the corresponding backend.
 
 The web app now includes browser-local Su-shrota ONNX transcription. Native builds retain the existing server transcription path. OpenAI still powers tutor replies; device speech is not a verified Sanskrit pronunciation voice.
 
@@ -17,7 +33,7 @@ The web app now includes browser-local Su-shrota ONNX transcription. Native buil
 - OpenAI-powered conversational Sanskrit tutor
 - Browser-local Sanskrit transcription with microphone, upload, and public-sample controls
 - Explicit 179 MiB model download, browser caching, cancellation, and editable transcripts
-- Spoken tutor responses using device text-to-speech
+- Web Sanskrit speech through a configured TTS API; native builds retain device speech
 - Local-only progress and preferences; no account or database
 - Responsive Expo app shared across web, iOS, and Android
 
@@ -53,6 +69,8 @@ The first download is approximately 179 MiB from Hugging Face. Recognition runs 
 Use clips between 0.4 and 15 seconds, at most 10 MB. Microphone capture stops just before 15 seconds to allow codec finalization. Microphone access needs permission and HTTPS or localhost. Unsupported codecs, silence, missing assets, and inference failures are reported visibly. The public sample's source and CC-BY-4.0 attribution are in [ATTRIBUTION.txt](public/audio/ATTRIBUTION.txt).
 
 Transcription is also available under **Practice** and inside lessons. **Use in tutor reply** only copies the editable transcript into the reply field. **Send** is the separate action that shares text with the tutor.
+
+Su-shrota is an ASR (automatic speech recognition) model: it converts Sanskrit audio into text and does not generate spoken audio. The audio player below a result replays the recording or public sample that was given to the model. Lesson **Listen** buttons are a separate device text-to-speech feature; pronunciation and voice quality depend on the voices installed in the browser or operating system.
 
 ### Tutor API and mobile
 

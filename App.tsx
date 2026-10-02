@@ -14,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
-import * as Speech from 'expo-speech';
 import { StatusBar } from 'expo-status-bar';
 
 import { askTutor, transcribeAudio, TutorApiUnavailableError } from './src/api';
@@ -23,6 +22,9 @@ import { defaultPreferences, loadLanguage, loadPreferences, saveLanguage, savePr
 import { languageFromUrl, urlWithLanguage } from './src/language';
 import LocalSpeechPanel from './src/speech/LocalSpeechPanel';
 import { speechCopy } from './src/speech/copy';
+import { speakSanskrit } from './src/speech/synthesis';
+import LocalTutorPanel from './src/localTutor/LocalTutorPanel';
+import { localCopy } from './src/localTutor/copy';
 import {
   Lesson,
   Level,
@@ -32,7 +34,7 @@ import {
   TutorMessage,
 } from './src/types';
 
-type Screen = 'learn' | 'practice' | 'progress' | 'settings';
+type Screen = 'learn' | 'practice' | 'local' | 'progress' | 'settings';
 
 const colors = {
   ink: '#25231F',
@@ -122,11 +124,13 @@ function Onboarding({
   onChange,
   onComplete,
   onTryTranscription,
+  onTryLocalTutor,
 }: {
   preferences: Preferences;
   onChange: (preferences: Preferences) => void;
   onComplete: (preferences: Preferences) => void;
   onTryTranscription: () => void;
+  onTryLocalTutor: () => void;
 }) {
   const [step, setStep] = useState(0);
   const language = preferences.supportLanguage;
@@ -222,6 +226,11 @@ function Onboarding({
         </View>
       </ScrollView>
       <View style={styles.onboardingFooter}>
+        {Platform.OS === 'web' && step === 0 ? (
+          <Pressable accessibilityRole="button" onPress={onTryLocalTutor} style={styles.finishButton}>
+            <Text style={styles.finishButtonText}>{localCopy[language].title} →</Text>
+          </Pressable>
+        ) : null}
         {Platform.OS === 'web' && step === 0 ? (
           <Pressable accessibilityRole="button" onPress={onTryTranscription} style={styles.finishButton}>
             <Text style={styles.finishButtonText}>{speechCopy[language].title} →</Text>
@@ -540,7 +549,10 @@ function LessonScreen({
         supportLanguage: language,
       };
       setMessages((current) => [...current, tutorMessage]);
-      Speech.speak(response.sanskrit, { language: 'sa-IN', rate: 0.82 });
+      void speakSanskrit(response.sanskrit, 0.82).catch((reason) => {
+        console.error('Sanskrit speech failed', reason);
+        setError('speechError');
+      });
     } catch (reason) {
       console.error('Tutor request failed', reason);
       setError(reason instanceof TutorApiUnavailableError ? 'tutorConfig' : 'tutorError');
@@ -601,7 +613,13 @@ function LessonScreen({
       {showReference ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.referenceStrip} contentContainerStyle={styles.referenceContent}>
           {lesson.phrases.map((phrase) => (
-            <Pressable key={phrase.devanagari} style={styles.referencePhrase} onPress={() => Speech.speak(phrase.devanagari, { language: 'sa-IN', rate: 0.78 })}>
+            <Pressable key={phrase.devanagari} style={styles.referencePhrase} onPress={() => {
+              setError(null);
+              void speakSanskrit(phrase.devanagari, 0.78).catch((reason) => {
+                console.error('Sanskrit speech failed', reason);
+                setError('speechError');
+              });
+            }}>
               <Text style={styles.referenceSanskrit}>{phrase.devanagari}</Text>
               <Text style={styles.referenceMeaning}>{phrase.meaning[language]}</Text>
             </Pressable>
@@ -634,7 +652,13 @@ function LessonScreen({
               ) : null}
               {message.role === 'tutor' && message.sanskrit ? (
                 <View style={styles.messageActions}>
-                  <Pressable onPress={() => Speech.speak(message.sanskrit!, { language: 'sa-IN', rate: 0.8 })}>
+                  <Pressable accessibilityRole="button" onPress={() => {
+                    setError(null);
+                    void speakSanskrit(message.sanskrit!).catch((reason) => {
+                      console.error('Sanskrit speech failed', reason);
+                      setError('speechError');
+                    });
+                  }}>
                     <Text style={styles.messageAction}>◖ {t('listen', language)}</Text>
                   </Pressable>
                 </View>
@@ -694,6 +718,7 @@ function BottomNav({ screen, language, onChange }: { screen: Screen; language: S
   const items: Array<{ id: Screen; icon: string; label: keyof typeof import('./src/content').ui }> = [
     { id: 'learn', icon: 'अ', label: 'home' },
     { id: 'practice', icon: '◉', label: 'practice' },
+    { id: 'local', icon: '⌂', label: 'local' },
     { id: 'progress', icon: '↗', label: 'progress' },
     { id: 'settings', icon: '☷', label: 'settings' },
   ];
@@ -717,9 +742,9 @@ export default function App() {
   const [preferences, setPreferences] = useState(defaultPreferences);
   const [screen, setScreen] = useState<Screen>('learn');
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
-  const [showTranscription, setShowTranscription] = useState(() =>
+  const [standaloneMode, setStandaloneMode] = useState(() =>
     Platform.OS === 'web' && typeof window !== 'undefined'
-      && new URLSearchParams(window.location.search).get('mode') === 'transcribe');
+      ? new URLSearchParams(window.location.search).get('mode') : null);
 
   useEffect(() => {
     Promise.all([loadPreferences(), loadLanguage()])
@@ -757,17 +782,17 @@ export default function App() {
       const url = new URL(window.location.href);
       const language = languageFromUrl(url);
       if (language) setPreferences((current) => ({ ...current, supportLanguage: language }));
-      setShowTranscription(url.searchParams.get('mode') === 'transcribe');
+      setStandaloneMode(url.searchParams.get('mode'));
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  function changeTranscription(show: boolean) {
-    setShowTranscription(show);
+  function changeStandalone(mode: 'transcribe' | 'tutor' | null) {
+    setStandaloneMode(mode);
     if (Platform.OS === 'web') {
       const url = new URL(window.location.href);
-      if (show) url.searchParams.set('mode', 'transcribe');
+      if (mode) url.searchParams.set('mode', mode);
       else url.searchParams.delete('mode');
       window.history.replaceState(window.history.state, '', url);
     }
@@ -783,6 +808,12 @@ export default function App() {
   }
 
   function renderScreen() {
+    if (screen === 'local') return (
+      <ScrollView contentContainerStyle={styles.screenContent}>
+        <Header streak={preferences.streak} />
+        <LocalTutorPanel language={preferences.supportLanguage} level={preferences.level} />
+      </ScrollView>
+    );
     if (screen === 'practice') return <PracticeScreen preferences={preferences} onOpenLesson={setActiveLesson} />;
     if (screen === 'progress') return <ProgressScreen preferences={preferences} />;
     if (screen === 'settings') {
@@ -805,16 +836,18 @@ export default function App() {
   }
 
   function renderContent() {
-    if (showTranscription) {
+    if (standaloneMode === 'transcribe' || standaloneMode === 'tutor') {
       return (
         <View style={styles.flex}>
           <StatusBar style="dark" />
           <ScrollView contentContainerStyle={[styles.screenContent, { maxWidth: 820, width: '100%', alignSelf: 'center' }]}>
             <Header streak={preferences.streak} />
-            <Pressable accessibilityRole="button" onPress={() => changeTranscription(false)} style={styles.finishButton}>
+            <Pressable accessibilityRole="button" onPress={() => changeStandalone(null)} style={styles.finishButton}>
               <Text style={styles.finishButtonText}>← VĀKYA</Text>
             </Pressable>
-            <LocalSpeechPanel language={preferences.supportLanguage} />
+            {standaloneMode === 'tutor'
+              ? <LocalTutorPanel language={preferences.supportLanguage} level={preferences.level} />
+              : <LocalSpeechPanel language={preferences.supportLanguage} />}
           </ScrollView>
         </View>
       );
@@ -825,7 +858,8 @@ export default function App() {
         <Onboarding
           preferences={preferences}
           onChange={setPreferences}
-          onTryTranscription={() => changeTranscription(true)}
+          onTryTranscription={() => changeStandalone('transcribe')}
+          onTryLocalTutor={() => changeStandalone('tutor')}
           onComplete={(next) => {
             persist(next);
             setOnboarded(true);

@@ -3,5 +3,5 @@
   "compilerOptions": {
     "strict": true
   },
-  "exclude": ["node_modules", "dist", "public/asr/runtime", "test-results", "playwright-report"]
+  "exclude": ["node_modules", "dist", "public/asr/runtime", "test-results", "playwright-report", "companion"]
 }

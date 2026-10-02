@@ -14,7 +14,7 @@ type WorkerMessage =
   | { type: 'result'; text: string; milliseconds: number }
   | { type: 'error'; code: string; detail: string };
 
-export default function LocalSpeechPanel({ language, onUseTranscript }: LocalSpeechPanelProps) {
+export default function LocalSpeechPanel({ language, onUseTranscript, usage = 'reply' }: LocalSpeechPanelProps) {
   const copy = speechCopy[language];
   const [phase, setPhase] = useState<Phase>('idle');
   const [progress, setProgress] = useState(0);
@@ -284,12 +284,17 @@ export default function LocalSpeechPanel({ language, onUseTranscript }: LocalSpe
           <TextInput testID="asr-transcript" accessibilityLabel={copy.transcript} multiline value={transcript} onChangeText={setTranscript} style={styles.transcript} />
           <Text style={styles.body}>{copy.resultNote}</Text>
           {milliseconds !== null && <Text testID="asr-timing" style={styles.subtitle}>{copy.time}: {milliseconds} {copy.milliseconds}</Text>}
-          {onUseTranscript && <Pressable accessibilityRole="button" disabled={!transcript.trim()} testID="use-transcript" onPress={() => onUseTranscript(transcript.trim())} style={styles.primary}><Text style={styles.primaryText}>{copy.use}</Text></Pressable>}
+          {onUseTranscript && <Pressable accessibilityRole="button" disabled={!transcript.trim()} testID="use-transcript" onPress={() => onUseTranscript(transcript.trim())} style={styles.primary}><Text style={styles.primaryText}>{usage === 'local' ? copy.useLocal : copy.use}</Text></Pressable>}
         </View>
       )}
-      {audioUrl && <audio controls src={audioUrl} style={{ width: '100%' }} />}
+      {audioUrl && (
+        <View>
+          <Text style={styles.subtitle}>{sample ? copy.samplePlayback : copy.recordingPlayback}</Text>
+          <audio controls src={audioUrl} style={{ width: '100%', marginTop: 8 }} />
+        </View>
+      )}
       {sample && <Text style={styles.body}>{copy.sampleReference}</Text>}
-      <Text style={styles.footnote}>{onUseTranscript ? copy.sendNotice : copy.tutorUnavailable}</Text>
+      <Text style={styles.footnote}>{usage === 'local' ? copy.localNotice : onUseTranscript ? copy.sendNotice : copy.tutorUnavailable}</Text>
       <Text style={styles.footnote}>{copy.attribution}</Text>
     </View>
   );

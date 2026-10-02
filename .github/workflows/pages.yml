@@ -27,6 +27,8 @@ jobs:
       - run: npm run export:web
         env:
           EXPO_PUBLIC_BASE_PATH: /VAKYA
+          EXPO_PUBLIC_TTS_API_URL: ${{ vars.EXPO_PUBLIC_TTS_API_URL }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

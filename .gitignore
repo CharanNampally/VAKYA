@@ -45,3 +45,13 @@ yarn-error.*
 /public/asr/runtime/
 /test-results/
 /playwright-report/
+
+# Local companion runtimes, credentials, model weights, and generated outputs
+/companion/.venv*/
+/companion/.tools/
+/companion/.python/
+/companion/.state/
+/companion/models/
+__pycache__/
+*.egg-info/
+.pytest_cache/

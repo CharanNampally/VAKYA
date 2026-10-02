@@ -114,6 +114,7 @@ export const lessons: Lesson[] = [
 ];
 
 export const ui = {
+  local: { en: 'Local', hi: 'स्थानीय', te: 'స్థానికం' },
   supportLanguage: { en: 'Support language', hi: 'सहायक भाषा', te: 'సహాయక భాష' },
   welcomeTitle: { en: 'Learn Sanskrit by speaking it', hi: 'संस्कृत बोलना सीखें', te: 'సంస్కృతం మాట్లాడటం నేర్చుకోండి' },
   welcomeBody: { en: 'A personal AI tutor that listens, responds, and explains in your language.', hi: 'आपकी भाषा में समझाने वाला व्यक्तिगत AI शिक्षक।', te: 'మీ భాషలో వివరించే వ్యక్తిగత AI గురువు.' },
@@ -157,6 +158,7 @@ export const ui = {
   reference: { en: 'Show or hide phrases', hi: 'वाक्यांश दिखाएँ या छिपाएँ', te: 'పదబంధాలను చూపించండి లేదా దాచండి' },
   tutorError: { en: 'The tutor could not respond. Please try again.', hi: 'शिक्षक उत्तर नहीं दे सका। कृपया फिर प्रयास करें।', te: 'గురువు సమాధానం ఇవ్వలేకపోయారు. మళ్లీ ప్రయత్నించండి.' },
   tutorConfig: { en: 'The tutor API is not available on this server. Configure EXPO_PUBLIC_API_URL for AI replies. Local transcription works independently.', hi: 'इस सर्वर पर शिक्षक API उपलब्ध नहीं है। AI उत्तरों के लिए EXPO_PUBLIC_API_URL सेट करें। स्थानीय लिप्यंतरण स्वतंत्र रूप से चलता है।', te: 'ఈ సర్వర్‌లో గురువు API అందుబాటులో లేదు. AI సమాధానాల కోసం EXPO_PUBLIC_API_URL అమర్చండి. స్థానిక లిప్యంతరీకరణ విడిగా పనిచేస్తుంది.' },
+  speechError: { en: 'Sanskrit speech is unavailable right now. Please try again later.', hi: 'संस्कृत वाणी अभी उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें।', te: 'సంస్కృత వాణి ప్రస్తుతం అందుబాటులో లేదు. దయచేసి తర్వాత మళ్లీ ప్రయత్నించండి.' },
   recordingError: { en: 'The recording could not be transcribed. Please try again.', hi: 'रिकॉर्डिंग का लिप्यंतरण नहीं हो सका। कृपया फिर प्रयास करें।', te: 'రికార్డింగ్‌ను లిప్యంతరీకరించలేకపోయాం. మళ్లీ ప్రయత్నించండి.' },
   microphoneError: { en: 'Microphone permission is needed for speaking practice.', hi: 'बोलने के अभ्यास के लिए माइक्रोफ़ोन की अनुमति चाहिए।', te: 'మాట్లాడే సాధన కోసం మైక్రోఫోన్ అనుమతి అవసరం.' },
   previousReply: { en: 'Earlier reply in the previously selected language. New replies use your current language.', hi: 'यह पुराना उत्तर पहले चुनी गई भाषा में है। नए उत्तर वर्तमान भाषा में होंगे।', te: 'ఇది గతంలో ఎంచుకున్న భాషలోని పాత సమాధానం. కొత్త సమాధానాలు ప్రస్తుత భాషలో ఉంటాయి.' },
