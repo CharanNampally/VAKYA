@@ -1,0 +1,9 @@
+**
+!azure/
+!azure/tutor/
+!azure/tutor/*.py
+!azure/tutor/requirements.txt
+!azure/tutor/Dockerfile
+!companion/
+!companion/vakya_companion/
+!companion/vakya_companion/*.py

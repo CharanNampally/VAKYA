@@ -1,0 +1,14 @@
+fastapi==0.115.12
+uvicorn==0.34.3
+transformers==4.51.3
+huggingface-hub==0.36.2
+accelerate==1.6.0
+safetensors==0.5.3
+indic-transliteration==2.3.82
+sanskrit-parser==0.2.6
+azure-data-tables==12.7.0
+azure-identity==1.25.1
+httpx==0.28.1
+numpy==1.26.4
+sentencepiece==0.2.2
+indictranstoolkit==1.1.1

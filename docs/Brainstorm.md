@@ -6,6 +6,13 @@ The original brainstorming material is preserved below. It is a proposal, **not 
 
 **Subsequent hosting clarification:** the owner wants the public client backed by a hosted model service, with no Python installation or local pairing for learners. The local companion below is retained as a development/offline option. See the architecture's hosting-direction update for the distinction between the currently implemented TTS container and the still-needed hosted translation/conversation API.
 
+**Current model decision:** keep translation providers interchangeable. IndicTrans2
+remains supported but its three checkpoints are still access-gated. Evaluate
+ungated Apache-2.0 MADLAD-400-3B-MT as the hosted default; reserve Qwen for English
+conversation planning. Vāgbodhinī is the chant-tutor app built on Vāgdhenu, not
+another speech model. Vaani's DhVaani and SraVaani are distinct TTS/ASR candidates.
+See the [hosted provider design](./LOCAL-COMPANION-ARCHITECTURE.md#hosted-provider-selection-and-deployment-design).
+
 ### Decisions confirmed with the product owner
 
 - Keep the Expo web/iOS/Android codebase; do not replace it with Next.js.

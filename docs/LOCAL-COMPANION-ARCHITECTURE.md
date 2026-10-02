@@ -4,6 +4,54 @@ Status: implementation design, 2 October 2026. Model activation and measured res
 
 ## Hosting direction update — 2 October 2026
 
+### Hosted provider selection and deployment design
+
+The owner approved bounded Azure hosting (scale to zero, at most one replica per
+service, persistent request quotas) and requested interchangeable translation
+providers rather than an IndicTrans2-only dependency.
+
+- **Translation:** use an explicit `VAKYA_TRANSLATION_PROVIDER=madlad|indictrans2`.
+  MADLAD-400-3B-MT is the ungated Apache-2.0 candidate; its actual SentencePiece
+  vocabulary contains `<2en>`, `<2hi>`, `<2te>`, and `<2sa>`. Vocabulary coverage
+  is not proof of Sanskrit translation quality. The dedicated IndicTrans2
+  directional adapters remain available; all three weight requests currently
+  return HTTP 403 for the configured account. There is no automatic fallback
+  that silently changes the selected provider.
+- **Conversation:** Qwen3-4B plans an English reply. The selected translator
+  handles input-to-English and English-to-Sanskrit/support-language output.
+  Qwen is not used as a substitute translator in this design.
+- **Speech:** Vāgbodhinī is an application, not a separate TTS checkpoint. Its
+  speech engine is Vāgdhenu, a metre-conditioned Sanskrit chant synthesizer.
+  Keep its separate runtime and label chant audio accurately. The Vaani
+  catalogue's DhVaani-0.5 is a separate sentence-TTS candidate (Apache-2.0,
+  Sanskrit explicitly low-resource); access to its repository is available,
+  but its runtime and pronunciation have not yet been validated.
+- **Recognition:** preserve verified browser-local Su-shrota. SraVaani-1.0 is
+  a hosted multilingual ASR candidate, not a silent replacement for local ASR.
+  Its model card reports Sanskrit WER 36.4%; this is not directly comparable
+  with Su-shrota's CER or a learner pronunciation score.
+
+The hosted tutor exposes the existing bounded `/v1/capabilities`, `/v1/teach`,
+`/v1/analyze`, and `/v1/converse` contracts over HTTPS. A separate speech origin
+provides `/v1/speak`. Public clients use no shared bearer secret. Optional local
+mode retains pairing; `?lang=` behavior remains unchanged. CORS is a browser
+boundary, not authentication: persistent, atomic global daily quotas are the
+anonymous service's primary inference-cost limit. Per-client limits are
+best-effort, and one nonblocking inference lock prevents unbounded queuing.
+Inputs and generated conversations are not persisted by the API; quota storage
+contains date-partitioned counters and hashed client identifiers.
+
+Use a Linux/PyTorch T4 runtime rather than Apple-only MLX in Azure. Keep model
+weights on the server, pin revisions, and load only one model onto the GPU at
+a time; release GPU tensors between stages to fit the 16 GiB T4. The T5
+translation model uses FP32 to avoid FP16 numerical overflow. All model
+downloads happen during provisioning/build, never during learner inference.
+
+These are implementation choices, **not a completion claim**. Acceptance still
+requires actual hosted text-to-translation, conversation, morphology, and WAV
+playback, plus public browser verification. The initial Qwen-only image build
+is not an accepted deployment of this revised stack.
+
 After this local-companion increment, the owner clarified that the public client should be backed by a hosted model container. **Public learners should not perform local setup or pairing.** The loopback design below remains the offline/development architecture, not the final hosted product experience.
 
 The hosted target is `Pages client -> HTTPS model API -> server-managed model providers`. Model acquisition, credentials, runtime dependencies, and hardware belong on the server. The client needs a verified endpoint and capabilities contract; the service needs an explicit public-access/authentication policy, origin restrictions, bounded concurrency, quotas, and error handling. A shared server secret must not be embedded in the static app.

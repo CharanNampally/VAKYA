@@ -1,0 +1,89 @@
+# Hosted Sanskrit tutor
+
+Anonymous, bounded HTTPS API for the Expo client. This is separate from the
+loopback companion and from the Vāgdhenu speech container.
+
+## Models and routing
+
+`VAKYA_TRANSLATION_PROVIDER` selects `madlad` (default) or `indictrans2`. Selection
+is explicit: provider failures do not trigger an unannounced fallback.
+
+- MADLAD: `google/madlad400-3b-mt`, Apache-2.0, revision
+  `fa184c675da0b5c9e1c8694fccd4e12e2d422094`. English/Hindi/Telugu/Sanskrit tags
+  were checked against the actual tokenizer. Real translation quality must be
+  evaluated separately; this is not a correctness engine.
+- Qwen: `Qwen/Qwen3-4B`, Apache-2.0, revision
+  `1cfa9a7208912126459214e8b04321603b3df60c`. English conversational planning,
+  not translation or grammar validation.
+- IndicTrans2: existing pinned directional adapters in the companion. Switching
+  requires normally authorized model provisioning and a mounted `VAKYA_MODEL_DIR`
+  containing the companion's revision directories and readiness markers.
+  The default image does not contain gated IndicTrans2 weights.
+- Analysis: the existing local Sanskrit morphology provider, not sentence-level
+  grammar verification.
+
+Teach translates directly into Sanskrit. Converse translates input to English,
+generates a bounded English reply/tip with Qwen, then translates the reply into
+Sanskrit and the tip into the selected support language. English history is
+returned to the client and supplied with subsequent requests; it is not stored
+server-side.
+
+## Runtime
+
+Build from the repository root:
+
+```sh
+az acr build --registry crvakyattsnc --image vakya-tutor:TAG \
+  --file azure/tutor/Dockerfile .
+```
+
+The root Docker ignore file is an allowlist: local credentials, `.env` files,
+pairing tokens, and local model caches are excluded. Pinned public weights are
+baked into the image. Inference is offline and needs no Hugging Face token.
+
+Use the existing T4 workload profile, 8 CPU / 56 GiB, one worker, minimum zero
+and maximum one replica. Models remain in CPU RAM between stages; one model at
+a time moves to GPU. MADLAD uses FP32 to avoid T5 FP16 overflow.
+
+Required environment:
+
+- `AZURE_STORAGE_TABLE_ENDPOINT`: existing Azure Table endpoint
+- `VAKYA_QUOTA_TABLE`: default `VakyaTutorQuota`
+- `VAKYA_GLOBAL_DAILY_LIMIT`: default 100, positive
+- `VAKYA_CLIENT_DAILY_LIMIT`: default 20, positive
+- `VAKYA_TRANSLATION_PROVIDER`: `madlad` or `indictrans2`
+- `VAKYA_TTS_API_URL`: optional separate speech origin, for capability reporting
+
+Assign a managed identity with `AcrPull` on the registry and `Storage Table Data
+Contributor` on the quota storage account. No shared API key goes in the client.
+The anonymous API is not protected by CORS against non-browser callers. Atomic
+global quotas bound inference requests; per-client quotas are best-effort.
+Quotas do not bound all Azure billing (image storage, cold starts, or network
+traffic), so configure Azure budget alerts independently.
+
+## Contract and frontend
+
+- `GET /health`: process health, not a completed model inference.
+- `GET /v1/capabilities`: installed providers; does not reserve quota.
+- `POST /v1/teach`, `/v1/analyze`, `/v1/converse`: companion-compatible JSON.
+- Errors: `{ "error": { "code": "...", "message": "..." } }`.
+- 16 KiB JSON body, 400-character input, six history entries, one active request.
+- `429`: busy or quota exhausted. `503`: missing provider/infrastructure failure.
+- No request bodies or conversations in application logs.
+
+Set public build variable `EXPO_PUBLIC_TUTOR_API_URL` to the HTTPS origin.
+Hosted builds auto-connect without pairing; `?service=local` explicitly opts
+into the original loopback mode. `EXPO_PUBLIC_TTS_API_URL` remains the separate
+speech origin. Existing OpenAI endpoints are used only when hosted mode is not
+configured.
+
+## Validation
+
+```sh
+PYTHONPATH=azure/tutor:companion companion/.venv/bin/python -m pytest azure/tutor/test_hosted.py
+npm test -- tests/unit/hosted-tutor.test.ts tests/unit/local-tutor.test.ts
+```
+
+Fixture tests cover contracts and errors, not translation quality or actual GPU
+inference. Deployment is not accepted until real translation, conversation and
+audio playback have been exercised through the public client.
