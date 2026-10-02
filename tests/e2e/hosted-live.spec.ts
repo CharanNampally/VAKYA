@@ -11,6 +11,12 @@ test('public tutor translates, converses, and plays actual hosted Sanskrit audio
   await page.addInitScript(() => {
     const originalPlay = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function () {
+      if (this.src.startsWith('blob:')) {
+        void fetch(this.src).then((response) => response.arrayBuffer()).then((buffer) => {
+          document.documentElement.dataset.vakyaWavHeader = new TextDecoder().decode(buffer.slice(0, 4));
+          document.documentElement.dataset.vakyaWavBytes = String(buffer.byteLength);
+        });
+      }
       this.addEventListener('timeupdate', () => {
         document.documentElement.dataset.vakyaAudioTime = String(this.currentTime);
       });
@@ -35,15 +41,19 @@ test('public tutor translates, converses, and plays actual hosted Sanskrit audio
   expect(result.transliteration.length).toBeGreaterThan(0);
   await expect(page.getByTestId('local-result')).toContainText(result.sanskrit);
 
-  const speech = page.waitForResponse((response) => response.url().endsWith('/v1/speak'), { timeout: 180000 });
+  const speech = page.waitForResponse((response) => response.url().endsWith('/v1/speak') && response.request().method() === 'POST', { timeout: 180000 });
   await page.getByTestId('listen-tutor').click();
   const wav = await speech;
   expect(wav.status()).toBe(200);
   expect(wav.headers()['content-type']).toContain('audio/wav');
-  const data = await wav.body();
-  expect(data.subarray(0, 4).toString()).toBe('RIFF');
-  expect(data.length).toBeGreaterThan(1000);
+  expect(await wav.finished()).toBeNull();
+  await testInfo.attach('speech-response', {
+    body: JSON.stringify({ method: wav.request().method(), headers: wav.headers() }),
+    contentType: 'application/json',
+  });
   await page.waitForFunction(() => Number(document.documentElement.dataset.vakyaAudioTime ?? 0) > 0.15, undefined, { timeout: 30000 });
+  expect(await page.locator('html').getAttribute('data-vakya-wav-header')).toBe('RIFF');
+  expect(Number(await page.locator('html').getAttribute('data-vakya-wav-bytes'))).toBeGreaterThan(1000);
 
   await page.getByTestId('select-language-te').click();
   await page.getByTestId('local-mode-converse').click();

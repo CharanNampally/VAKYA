@@ -164,7 +164,7 @@ export default function LocalTutorPanel({ language, level }: LocalTutorProps) {
       </View>)}
       <Text style={styles.body}>{copy.speechMissing}</Text>
       <Text style={styles.body}>{copy.privacy}</Text>
-      <LocalSpeechPanel language={language} usage="local" onUseTranscript={busy ? undefined : (value) => { setText(value); setSource('sa'); }} />
+      <LocalSpeechPanel language={language} usage={usingHostedTutor ? 'reply' : 'local'} onUseTranscript={busy ? undefined : (value) => { setText(value); setSource('sa'); }} />
     </View>
   );
 }

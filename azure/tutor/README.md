@@ -129,3 +129,15 @@ also produced dropped connections during later image activation. One replica
 was temporarily kept warm with the owner's approval for verification, with
 restoration to zero scheduled within 20 minutes. This is a real availability
 limitation, not evidence of an always-responsive production service.
+
+The actual public-browser integration test subsequently **passed** in 51 seconds:
+Pages auto-connected without pairing, translated English input, received a real
+WAV blob, advanced browser audio playback beyond 0.15 seconds, and returned a
+Qwen/MADLAD conversation with a Telugu explanation. Audio and inference were not
+stubbed. Separately, the deployed Pages test loaded the real local ASR worker and
+returned the exact sample transcript with no audio POST requests. These results
+establish the operational pipeline, not translation correctness.
+
+The tutor's minimum replicas was restored to **0**, maximum **1**, and the
+resulting Azure configuration was read back successfully. Public entry point:
+<https://charannampally.github.io/VAKYA/?mode=tutor&lang=en>.

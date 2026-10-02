@@ -52,6 +52,14 @@ requires actual hosted text-to-translation, conversation, morphology, and WAV
 playback, plus public browser verification. The initial Qwen-only image build
 is not an accepted deployment of this revised stack.
 
+**Subsequent measured outcome:** the separate MADLAD/Qwen service was deployed
+and the actual public-browser translation, conversation, and WAV playback test
+passed. Real hosted morphology and deployed browser-local ASR also passed.
+Minimum replicas was verified restored to zero after a time-limited warm test.
+However, real translation changed tense and generated unnatural Sanskrit;
+production teaching quality has **not** passed, and scale-to-zero cold starts
+remain slow/unreliable. See the [runtime evidence](../azure/tutor/README.md#measured-runtime-evidence-and-quality-limits).
+
 After this local-companion increment, the owner clarified that the public client should be backed by a hosted model container. **Public learners should not perform local setup or pairing.** The loopback design below remains the offline/development architecture, not the final hosted product experience.
 
 The hosted target is `Pages client -> HTTPS model API -> server-managed model providers`. Model acquisition, credentials, runtime dependencies, and hardware belong on the server. The client needs a verified endpoint and capabilities contract; the service needs an explicit public-access/authentication policy, origin restrictions, bounded concurrency, quotas, and error handling. A shared server secret must not be embedded in the static app.
