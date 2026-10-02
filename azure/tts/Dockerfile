@@ -14,7 +14,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/opt/vagdhenu/src:/opt/BigVGAN
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates git libsndfile1 python3.10 python3-pip \
+    && apt-get install -y --no-install-recommends ca-certificates ffmpeg git libsndfile1 python3.10 python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python3.10 -m pip install --upgrade pip \
@@ -22,10 +22,12 @@ RUN python3.10 -m pip install --upgrade pip \
 
 COPY requirements.txt /tmp/api-requirements.txt
 RUN python3.10 -m pip install -r /tmp/api-requirements.txt \
-    && python3.10 -m pip install transformers==4.46.3 vocos==0.1.0 \
-      x-transformers==2.19.7 numpy==1.26.4 librosa==0.11.0 \
-      matplotlib==3.10.7 pydub pypinyin safetensors scipy soundfile \
-      torchdiffeq tqdm huggingface_hub indic-transliteration
+    && python3.10 -m pip install transformers==4.46.3 \
+      numpy==1.26.4 librosa==0.11.0 encodec==0.1.1 einops==0.8.2 einx==0.4.3 \
+      jieba loguru==0.7.3 matplotlib==3.10.7 pydub pypinyin safetensors scipy soundfile \
+      torchdiffeq tqdm huggingface_hub indic-transliteration \
+    && python3.10 -m pip install --no-deps \
+      vocos==0.1.0 x-transformers==2.19.7 torch-einops-utils==0.0.34
 
 RUN git clone https://github.com/prathoshap/vagdhenu.git /opt/vagdhenu \
     && git -C /opt/vagdhenu checkout "${VAGDHENU_REV}" \
@@ -35,7 +37,8 @@ RUN git clone https://github.com/prathoshap/vagdhenu.git /opt/vagdhenu \
     && sed -i 's/, \"Trainer\"//' /opt/IndicF5/f5_tts/model/__init__.py \
     && python3.10 -m pip install --no-deps /opt/IndicF5 \
     && git clone https://github.com/NVIDIA/BigVGAN.git /opt/BigVGAN \
-    && git -C /opt/BigVGAN checkout "${BIGVGAN_REV}"
+    && git -C /opt/BigVGAN checkout "${BIGVGAN_REV}" \
+    && python3.10 -c "import bigvgan, torch, torchaudio; assert torch.__version__.startswith('2.4.1'); assert torchaudio.__version__.startswith('2.4.1'); from f5_tts.infer.utils_infer import load_model; from f5_tts.model import DiT"
 
 RUN HF_HUB_OFFLINE=0 python3.10 /opt/vagdhenu/scripts/download_weights.py \
     && HF_HUB_OFFLINE=0 python3.10 -c "from huggingface_hub import snapshot_download; snapshot_download('charactr/vocos-mel-24khz'); snapshot_download('nvidia/bigvgan_v2_24khz_100band_256x')"

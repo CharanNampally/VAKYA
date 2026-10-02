@@ -1,8 +1,11 @@
 export class SanskritSpeechError extends Error {}
 
+export const defaultSanskritSpeechEndpoint =
+  'https://ca-vakya-tts.bravemushroom-b8d00672.northcentralus.azurecontainerapps.io';
+
 export async function fetchSanskritSpeech(
   text: string,
-  endpoint = process.env.EXPO_PUBLIC_TTS_API_URL,
+  endpoint = process.env.EXPO_PUBLIC_TTS_API_URL || defaultSanskritSpeechEndpoint,
 ): Promise<Blob> {
   if (!endpoint) {
     throw new SanskritSpeechError('EXPO_PUBLIC_TTS_API_URL is not configured.');

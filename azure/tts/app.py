@@ -1,10 +1,11 @@
 import hashlib
 import io
 import json
+import logging
 import os
 import re
 import threading
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -30,6 +31,7 @@ ORIGINS = [
     ).split(",")
     if value.strip()
 ]
+logger = logging.getLogger("vakya.tts")
 
 
 class SpeechRequest(BaseModel):
@@ -66,7 +68,7 @@ class DailyQuota:
         self.table.update_entity(entity, mode=UpdateMode.REPLACE)
 
     def take(self, client: str) -> None:
-        day = datetime.now(UTC).date().isoformat()
+        day = datetime.now(timezone.utc).date().isoformat()
         client_key = "client-" + hashlib.sha256(client.encode()).hexdigest()[:24]
         with self.lock:
             self._increment(day, "global", self.global_limit)
@@ -102,7 +104,14 @@ class SpeechEngine:
                 vocab_file=str(VOCAB),
                 nfe=int(os.environ.get("VAGDHENU_NFE", "32")),
             )
+            self.renderer._ta.load = self._load_audio
         return self.renderer
+
+    @staticmethod
+    def _load_audio(path):
+        import torch
+        audio, sample_rate = sf.read(path, dtype="float32", always_2d=True)
+        return torch.from_numpy(audio.T.copy()), sample_rate
 
     def render(self, body: SpeechRequest) -> bytes:
         if not re.search(r"[\u0900-\u097f]", body.text):
@@ -149,6 +158,7 @@ def speak(body: SpeechRequest, request: Request):
     except HTTPException:
         raise
     except Exception as error:
+        logger.exception("Vagdhenu synthesis failed")
         raise HTTPException(status_code=503, detail="Sanskrit speech generation failed.") from error
     return Response(
         audio,
