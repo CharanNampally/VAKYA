@@ -28,7 +28,7 @@
       "containers": [
         {
           "name": "tutor",
-          "image": "crvakyattsnc.azurecr.io/vakya-tutor@sha256:881ef3a1d93b5e7889d72598ce7b9871de4d0dad9c769254d5de7d52482f6cb9",
+          "image": "crvakyattsnc.azurecr.io/vakya-tutor@sha256:43562808d2fe0b6758e67046f6c653bb763d9cf70771c40d72dcef94111c856b",
           "resources": { "cpu": 8.0, "memory": "56Gi" },
           "env": [
             { "name": "AZURE_CLIENT_ID", "value": "9d744cbd-520f-4943-9098-46c409905564" },

@@ -690,6 +690,7 @@ function LessonScreen({
         </ScrollView>
 
         <View style={styles.composerWrap}>
+          {usingHostedTutor && <Text style={styles.promptHintText}>{localCopy[language].experimental_conversation} {localCopy[language].machine_translation}</Text>}
           {usingHostedTutor && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <Text>{localCopy[language].source}</Text>
             {(['sa', 'en', 'hi', 'te'] as SourceLanguage[]).map((source) => <Pressable key={source} accessibilityRole="radio" accessibilityState={{ checked: sourceLanguage === source }} disabled={isSending} onPress={() => setSourceLanguage(source)}>

@@ -98,3 +98,34 @@ HOSTED_LIVE_URL=https://charannampally.github.io/VAKYA/ \
 It consumes real quota, checks the returned Sanskrit/Telugu scripts and WAV
 header, and observes actual browser audio time advancing (without stubbing
 playback). These are integration checks, not expert linguistic evaluation.
+
+## Measured runtime evidence and quality limits
+
+The pinned `.4` image adds the actual T5 tokenizer's required Protobuf
+dependency and schema-constrained Qwen JSON generation. Both tokenizers are
+loaded during its build. The deployment manifest pins its immutable digest.
+The patch Dockerfile reuses the large, already published model layers; the main
+Dockerfile remains the from-source build recipe.
+
+Real Azure inference returned:
+
+- English `Hello` -> Sanskrit `namaskarah` (IAST display uses diacritics).
+- Hindi and Telugu greetings -> Devanagari Sanskrit greetings.
+- Sanskrit morphology returned real candidate roots/tags.
+- English-to-Sanskrit Teach: approximately 21 seconds on the warm service's
+  first model load; conversation with Telugu support: approximately 37 seconds.
+
+**Quality gate not passed:** "I read a book." produced `aham pustakam
+pathishyami`, changing the present tense into future tense. A conversational
+reply also contained unnatural/mixed-language Sanskrit. These concrete failures
+mean the current translator must remain experimental, not verified teaching.
+Constrained JSON fixes structure, not linguistic correctness. Switching to
+normally authorized IndicTrans2 and comparative expert evaluation remain open.
+Azure Translator's advertised language list was also checked: it did not
+advertise Sanskrit, so it was not added as a misleading substitute.
+
+Scale-to-zero cold starts took roughly three minutes in one measurement and
+also produced dropped connections during later image activation. One replica
+was temporarily kept warm with the owner's approval for verification, with
+restoration to zero scheduled within 20 minutes. This is a real availability
+limitation, not evidence of an always-responsive production service.
